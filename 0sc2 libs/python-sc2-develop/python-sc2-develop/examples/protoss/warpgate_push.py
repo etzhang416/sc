@@ -1,3 +1,7 @@
+import sys, os
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
+
 import sc2
 from sc2 import Race, Difficulty
 from sc2.ids.unit_typeid import UnitTypeId
@@ -7,10 +11,10 @@ from sc2.ids.buff_id import BuffId
 from sc2.unit import Unit
 from sc2.units import Units
 from sc2.position import Point2
+from sc2.player import Bot, Computer
 
 
-class PVPBot(sc2.BotAI):
-
+class WarpGateBot(sc2.BotAI):
     def __init__(self):
         # Initialize inherited class
         sc2.BotAI.__init__(self)
@@ -31,6 +35,7 @@ class PVPBot(sc2.BotAI):
 
     async def on_step(self, iteration):
         await self.distribute_workers()
+
         if not self.townhalls.ready:
             # Attack with all workers if we don't have any nexuses left, attack-move on enemy spawn (doesn't work on 4 player map) so that probes auto attack on the way
             for worker in self.workers:
@@ -38,15 +43,18 @@ class PVPBot(sc2.BotAI):
             return
         else:
             nexus = self.townhalls.ready.random
+
         # Build pylon when on low supply
         if self.supply_left < 2 and self.already_pending(UnitTypeId.PYLON) == 0:
             # Always check if you can afford something before you build it
             if self.can_afford(UnitTypeId.PYLON):
                 await self.build(UnitTypeId.PYLON, near=nexus)
             return
+
         if self.workers.amount < self.townhalls.amount * 22 and nexus.is_idle:
             if self.can_afford(UnitTypeId.PROBE):
                 nexus.train(UnitTypeId.PROBE)
+
         elif self.structures(UnitTypeId.PYLON).amount < 5 and self.already_pending(UnitTypeId.PYLON) == 0:
             if self.can_afford(UnitTypeId.PYLON):
                 await self.build(UnitTypeId.PYLON, near=nexus.position.towards(self.game_info.map_center, 5))
@@ -68,6 +76,7 @@ class PVPBot(sc2.BotAI):
                 and self.structures(UnitTypeId.WARPGATE).amount + self.structures(UnitTypeId.GATEWAY).amount < 4
             ):
                 await self.build(UnitTypeId.GATEWAY, near=pylon)
+
         # Build gas
         for nexus in self.townhalls.ready:
             vgs = self.vespene_geyser.closer_than(15, nexus)
@@ -80,6 +89,7 @@ class PVPBot(sc2.BotAI):
                 if not self.gas_buildings or not self.gas_buildings.closer_than(1, vg):
                     worker.build(UnitTypeId.ASSIMILATOR, vg)
                     worker.stop(queue=True)
+
         # Research warp gate if cybercore is completed
         if (
             self.structures(UnitTypeId.CYBERNETICSCORE).ready
@@ -88,12 +98,15 @@ class PVPBot(sc2.BotAI):
         ):
             ccore = self.structures(UnitTypeId.CYBERNETICSCORE).ready.first
             ccore.research(UpgradeId.WARPGATERESEARCH)
+
         # Morph to warp gate when research is complete
         for gateway in self.structures(UnitTypeId.GATEWAY).ready.idle:
             if self.already_pending_upgrade(UpgradeId.WARPGATERESEARCH) == 1:
                 gateway(AbilityId.MORPH_WARPGATE)
+
         if self.proxy_built:
             await self.warp_new_units(proxy)
+
         # Make stalkers attack either closest enemy unit or enemy spawn location
         if self.units(UnitTypeId.STALKER).amount > 3:
             for stalker in self.units(UnitTypeId.STALKER).ready.idle:
@@ -103,6 +116,7 @@ class PVPBot(sc2.BotAI):
                     stalker.attack(target)
                 else:
                     stalker.attack(self.enemy_start_locations[0])
+
         # Build proxy pylon
         if (
             self.structures(UnitTypeId.CYBERNETICSCORE).amount >= 1
@@ -125,4 +139,13 @@ class PVPBot(sc2.BotAI):
                     nexus(AbilityId.EFFECT_CHRONOBOOSTENERGYCOST, ccore)
 
 
+def main():
+    sc2.run_game(
+        sc2.maps.get("(2)CatalystLE"),
+        [Bot(Race.Protoss, WarpGateBot()), Computer(Race.Protoss, Difficulty.Easy)],
+        realtime=False,
+    )
 
+
+if __name__ == "__main__":
+    main()

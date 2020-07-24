@@ -1,0 +1,11 @@
+{
+  "Bots": {
+    "MadAI": {
+      "Race": "Protoss",
+      "Type": "Python",
+      "RootPath": "./",
+      "FileName": "run.py",
+      "Debug": false
+    }
+  }
+}
