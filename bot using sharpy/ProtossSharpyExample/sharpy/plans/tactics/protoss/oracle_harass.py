@@ -33,7 +33,9 @@ class OracleHarass(ActBase):
                     elif harass_oracle.shield_percentage >= 0.95:
                         self.oracle_evasive_move_to(position)
                     else:
-                        self.oracle_evasive_move_to(self.knowledge.our_zones[0].center_location)
+                        if self.knowledge.our_zones:
+                            base = self.knowledge.our_zones[0].center_location
+                            self.oracle_evasive_move_to(base)
                 else:
                     await self.harass_with_oracle()
         return True  # never block
@@ -87,22 +89,25 @@ class OracleHarass(ActBase):
                 return True
         return False
 
-    def oracle_evasive_move_to(self, position):
+    def oracle_evasive_move_to(self, position_to):
         harass_oracle: Unit = self.knowledge.unit_cache.by_tag(self.oracle_tag)
         enemy_anti_air_units = self.knowledge.unit_cache.enemy_in_range(harass_oracle.position3d, 11) \
             .filter(lambda unit: unit.can_attack_air).visible
 
         if enemy_anti_air_units.exists:
+            position = harass_oracle.position3d
             aa = enemy_anti_air_units.closest_to(harass_oracle)
             distance_to_position = harass_oracle.distance_to(position)
-            if distance_to_position >= 10:
-                self.do(harass_oracle.move(harass_oracle.position3d
-                                           .towards(aa, -8).towards(position, 6)))
-            else:
-                self.do(harass_oracle.move(harass_oracle.position3d
-                                           .towards(aa, -8).towards(position, 4)))
+            for aa in enemy_anti_air_units:
+                distance = harass_oracle.distance_to(aa.position3d)
+                amount_of_evade = 15 - distance
+                position = position.towards(aa, - amount_of_evade)
+            # after the for loop, position is the best vector away from enemy
+            distance_to_best_evade_point = harass_oracle.distance_to(position)
+            should_go = position.towards(position_to, distance_to_best_evade_point * 0.7)
+            self.do(harass_oracle.move(should_go))
         else:
-            self.do(harass_oracle.move(position))
+            self.do(harass_oracle.move(position_to))
 
     def get_first_oracle_flank_position(self):
         distance = 1.7 * self.knowledge.enemy_expansion_zones[1].center_location. \

@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Optional, List
 
+from sc2 import Race, UnitTypeId
+
 from sharpy.plans.acts import ActBase
 from sharpy.managers.game_states.advantage import (
     at_least_small_disadvantage,
@@ -214,9 +216,9 @@ class PlanZoneAttack(ActBase):
         elif zone_count == 2 and enemy_natural.is_enemys:
             enemy_total_power.add_units(enemy_natural.enemy_static_defenses)
 
-            # if (self.knowledge.enemy_race == Race.Terran
-            #         and self.knowledge.enemy_units_manager.unit_count(UnitTypeId.SIEGETANK) > 1):
-            #     multiplier = 1.6
+            if (self.knowledge.enemy_race == Race.Terran
+                    and self.knowledge.enemy_units_manager.unit_count(UnitTypeId.SIEGETANK) >= 1):
+                multiplier = 1.6
 
         enemy_total_power.power = max(self.start_attack_power, enemy_total_power.power)
 

@@ -6,4 +6,5 @@ from .plan_heat_defender import PlanHeatDefender
 from .plan_heat_observer import PlanHeatObserver
 from .dt_attack import DarkTemplarAttack
 from .oracle_harass import OracleHarass
-from .shield_overcharge import ShieldOvercharge
+# from .shield_overcharge import ShieldOvercharge
+from .warp_prism_drop import WarpPrismHarass
